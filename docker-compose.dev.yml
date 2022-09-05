@@ -1,0 +1,111 @@
+version: '3.7'
+
+services:
+
+ mongo_pri:
+  hostname: mongo_pri
+  image: mongo:4.2.8
+  expose:
+   - 27017
+  ports:
+   - 30001:27017 
+  restart: always
+  command: mongod --replSet my-mongo-set
+  depends_on:
+   - mongo_sec
+  networks:
+   - mongo-net
+
+ mongo_sec:
+  hostname: mongo_sec
+  image: mongo:4.2.8
+  expose:
+   - 27017
+  ports:
+   - 30002:27017
+  restart: always
+  networks:
+   - mongo-net
+  command: mongod --replSet my-mongo-set
+ 
+ mongoinit:
+  image: mongo:4.2.8
+  # this container will exit after executing the command
+  restart: on-failure
+  depends_on:
+   - mongo_pri
+  networks:
+   - mongo-net
+  command: > 
+   mongo --host mongo_pri:27017 --eval 
+   '
+    db = (new Mongo("mongo_pri:27017")).getDB("test");
+    config = { "_id" : "my-mongo-set",
+    "members" : [
+    {
+     "_id" : 0, 
+     "host" : "mongo_pri:27017"
+    },
+    {
+     "_id" : 1,
+     "host" : "mongo_sec:27017"
+    },
+    ]};
+    rs.initiate(config);
+   '
+ mongo-express:
+  image: mongo-express:latest
+  ports:
+   - 8081:8081
+  depends_on:
+   - mongo_pri 
+  environment:
+   - ME_CONFIG_MONGODB_SERVER=mongo_pri:27017,mongo_sec
+  networks:
+   - mongo-net
+
+ 
+ sb-webserver:
+  image: sb-webserver:latest
+  ports:
+   - 8000:8000
+   - 9229:9229
+  environment:
+   - SERVER_PORT=8000
+   - CONNECTIONSTRING=mongodb://mongo_pri:27017,mongo_sec:27017/MongoDB?replicaSet=my-mongo-set
+  volumes:
+   - ./webserver/:/app
+  command: npm run debug
+  depends_on:
+   - mongoinit
+  networks:
+   - mongo-net
+
+ billy:
+  image: sb-billy:latest
+  ports:
+   - 9228:9228
+  environment:
+   - CONNECTIONSTRING=mongodb://mongo_pri:27017,mongo_sec:27017/MongoDB?replicaSet=my-mongo-set
+  volumes:
+   - ./billy/:/app
+  command: npm run debug
+  depends_on:
+   - mongoinit
+  networks:
+   - mongo-net
+
+ #mongo:
+  #ports:
+   #- 27017:27017
+  #volumes:
+   #- mongodb:/data/db
+   #- mongodb_config:/data/configdb
+
+volumes:
+ mongodb:
+ mongodb_config:
+
+networks:
+  mongo-net:
+    driver: overlay
