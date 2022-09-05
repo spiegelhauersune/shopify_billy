@@ -81,6 +81,22 @@ services:
   networks:
    - mongo-net
 
+ sb-shopify:
+  image: sb-shopify:latest
+  ports:
+   #- 8000:8000
+   - 9227:9227
+  environment:
+   #- SERVER_PORT=8000
+   - CONNECTIONSTRING=mongodb://mongo_pri:27017,mongo_sec:27017/MongoDB?replicaSet=my-mongo-set
+  volumes:
+   - ./webserver/:/app
+  command: npm run debug
+  depends_on:
+   - mongoinit
+  networks:
+   - mongo-net
+
  sb-billy:
   image: sb-billy:latest
   ports:
