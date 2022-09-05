@@ -81,7 +81,7 @@ services:
   networks:
    - mongo-net
 
- billy:
+ sb-billy:
   image: sb-billy:latest
   ports:
    - 9228:9228

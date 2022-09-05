@@ -19,5 +19,7 @@ cd ..
 
 docker-compose -f docker-compose.dev.yml up
 
+$ curl --request POST --url http://localhost:8000/contact --header 'content-type: application/json' --data '{ "name": "Sune Spiegelhauer", "type": "person", "street": "Møllevej Syd 4", "zipcodeText": "3660", "cityText": "Stenløse", "phone": "22600359", "isCustomer": "true" }'
+
 
 Attach debugger
